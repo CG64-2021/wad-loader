@@ -12,9 +12,9 @@
 #define W_LFETCHERROR 5 //if the lump list wasn't fetched completely
 
 //Error codes, used by WAD_LoadLumpData()
-#define W_DATAMALLOCERROR 6 //if raw_data wasn't mallocated
-#define W_DATAFETCHERROR 7 //if lump data couldn't be fetched from the file
-#define W_LUMPNOTFOUND 8 //if desired lump was not found
+#define W_DATAMALLOCERROR 6
+#define W_DATAFETCHERROR 7
+#define W_LUMPNOTFOUND 8
 
 typedef struct
 {
@@ -30,6 +30,12 @@ typedef struct
 	lump_t* lumps;
 } wad_t;
 
+typedef struct
+{
+	uint32_t size;
+	uint8_t* data;
+} lumpdata_t;
+
 //Load a WAD file and its lump list
 //Don't forget to WAD_Close() if you won't use it anymore
 //Args: filename, wad_t addr
@@ -37,10 +43,14 @@ typedef struct
 int WAD_LoadFile(const char* fn, wad_t* wad);
 
 //Get lump raw data from the wad
-//Don't forget to free() if you won't use raw_data anymore
+//Don't forget to WAD_FreeLumpData() if you won't use it anymore
 //Args: lumpname, wad_t addr, raw_data
 //Return: 0 if success, errno if fail
-int WAD_LoadLumpData(const char* ln, wad_t* wad, uint8_t* raw_data);
+int WAD_LoadLumpData(const char* ln, wad_t* wad, lumpdata_t* raw_data);
+
+//Free mallocated elements within lumpdata_t
+//Args: lumpdata_t addr
+void WAD_FreeLumpData(lumpdata_t* lumpdata);
 
 //Free mallocated elements within wad_t and close WAD file
 //Args: wad_t addr
