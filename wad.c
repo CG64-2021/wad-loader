@@ -73,7 +73,7 @@ int WAD_LoadLumpData(const char* ln, wad_t* wad, lumpdata_t* lumpdata)
 	for(i=0; i < numlumps; ++i)
 	{
 		//A lump name is 8 bytes long
-		if (!memcmp(lumps[i].name, ln, sizeof(ln)&15))
+		if (!memcmp(lumps[i].name, ln, strlen(ln)&15))
 		{
 			if (fseek(wad->fp, swapU32(lumps[i].filepos), SEEK_SET))
 			{
