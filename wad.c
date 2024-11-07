@@ -10,9 +10,8 @@ typedef struct
 {
 	char id[4];
 	uint32_t numlumps;
-	uint32_t lumplistofs;
+	uint32_t lumplistpos;
 } header_t;
-
 
 int WAD_LoadFile(const char* fn, wad_t* wad)
 {
@@ -35,79 +34,89 @@ int WAD_LoadFile(const char* fn, wad_t* wad)
 		return W_NONVALID;
 	}
 	
-	//Get number of lumps available
+	//Get number of lumps available and lumplist offset
 	wad->numlumps = swapU32(header.numlumps);
-	
-	//Go to the lump list
-	if (fseek(wad->fp, swapU32(header.lumplistofs), SEEK_SET))
-	{
-		fclose(wad->fp);
-		return W_FTRUNCATED;
-	}
-	
-	//Get full list of available lumps
-	wad->lumps = (lump_t*)malloc(wad->numlumps*sizeof(lump_t));
-	if (!wad->lumps)
-	{
-		fclose(wad->fp);
-		return W_LMALLOCERROR;
-	}
-	memset(wad->lumps, 0, wad->numlumps*sizeof(lump_t));
-	if (fread(wad->lumps, 1, wad->numlumps*sizeof(wad->lumps[0]), wad->fp) < wad->numlumps*sizeof(wad->lumps[0]))
-	{ 
-		free(wad->lumps);
-		fclose(wad->fp);
-		return W_LFETCHERROR;
-	}
+	wad->lumplistpos = swapU32(header.lumplistpos);
 	
 	return 0;
 }
 
-int WAD_LoadLumpData(const char* ln, wad_t* wad, lumpdata_t* lumpdata)
+typedef struct
+{
+	uint32_t pos;
+	uint32_t size;
+	char name[8];
+} lumpinfo_t;
+
+int WAD_LoadLumpData(const char* ln, wad_t* wad, lump_t* lump)
 {
 	uint32_t numlumps = wad->numlumps;
-	lump_t* lumps = wad->lumps;
+	lumpinfo_t lumpinfo;
+	
+	//Go to the lump list
+	if (fseek(wad->fp, wad->lumplistpos, SEEK_SET))
+		return W_FTRUNCATED;
 	
 	//Look for the desired lump in the list
 	uint32_t i;
-	for(i=0; i < numlumps; ++i)
+	for(i=0; i < numlumps && !feof(wad->fp); ++i)
 	{
-		//A lump name is 8 bytes long
-		if (!memcmp(lumps[i].name, ln, strlen(ln)&15))
+		if (fread(&lumpinfo, 1, sizeof(lumpinfo), wad->fp) < sizeof(lumpinfo))
+			return W_FTRUNCATED;
+		
+		if (memcmp(lumpinfo.name, ln, strlen(ln)&15))
+			continue;
+		
+		//If we found the desired lump...
+		
+		//Go to where is the lump's data
+		if (fseek(wad->fp, swapU32(lumpinfo.pos), SEEK_SET))
+			return W_FTRUNCATED;
+		
+		//malloc raw data to be filled
+		lump->size = swapU32(lumpinfo.size);
+		lump->data = calloc(lump->size, 1);
+		if (!lump->data) return W_LMALLOCERR;
+		
+		//Read raw data from the file
+		if (fread(lump->data, 1, lump->size, wad->fp) < lump->size)
 		{
-			if (fseek(wad->fp, swapU32(lumps[i].filepos), SEEK_SET))
-			{
-				return W_FTRUNCATED;
-			}
-			
-			//Get lump size
-			lumpdata->size = swapU32(lumps[i].size);
-			
-			//Malloc raw_data
-			lumpdata->data = malloc(lumpdata->size);
-			if (!lumpdata->data) return W_DATAMALLOCERROR;
-			memset(lumpdata->data, 0, lumpdata->size);
-			
-			//Read raw data from the file
-			if (fread(lumpdata->data, 1, lumpdata->size, wad->fp) < lumpdata->size)
-			{
-				WAD_FreeLumpData(lumpdata);
-				return W_DATAFETCHERROR;
-			}
-			return 0;
+			free(lump->data);
+			return W_FTRUNCATED;
 		}
+		
+		return 0;
 	}
 	return W_LUMPNOTFOUND;
 }
 
-void WAD_FreeLumpData(lumpdata_t* lumpdata)
+int WAD_PrintLumpList(wad_t* wad)
 {
-	free(lumpdata->data);
-	memset(lumpdata, 0, sizeof(lumpdata));
+	lumpinfo_t lumpinfo;
+	
+	//Go to the lump list
+	if (fseek(wad->fp, wad->lumplistpos, SEEK_SET))
+		return W_FTRUNCATED;
+	
+	printf("Lump List: \n\n");
+	
+	//Print a list containing all lumps available to screen
+	while(!feof(wad->fp))
+	{
+		if (fread(&lumpinfo, 1, sizeof(lumpinfo), wad->fp) < sizeof(lumpinfo))
+			return W_FTRUNCATED;
+		
+		printf("fp:0x%X, size:%u, name:%.8s\n", swapU32(lumpinfo.pos), swapU32(lumpinfo.size), lumpinfo.name);
+	}
+}
+
+void WAD_FreeLumpData(lump_t* lump)
+{
+	free(lump->data);
+	memset(lump, 0, sizeof(lump));
 }
 
 void WAD_Close(wad_t* wad)
 {
 	fclose(wad->fp);
-	free(wad->lumps);
 }

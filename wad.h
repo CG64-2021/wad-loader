@@ -4,40 +4,25 @@
 //You can find more info about WAD file here:
 //https://doomwiki.org/wiki/WAD
 
-//Error codes, used by WAD_LoadFile()
+//Error codes
 #define W_FOPENERROR 1 //if fopen() fails
 #define W_FTRUNCATED 2 //if the file is truncated
 #define W_NONVALID 3 //if a file is not a valid wad file
-#define W_LMALLOCERROR 4 //if the lump list couldn't be mallocated
-#define W_LFETCHERROR 5 //if the lump list wasn't fetched completely
+#define W_LMALLOCERR 4 //If lump->data couldn't be mallocated
+#define W_LUMPNOTFOUND 5 //If the desired lump was not found
 
-//Error codes, used by WAD_LoadLumpData()
-#define W_DATAMALLOCERROR 6 //If raw data couldn't be mallocated
-#define W_DATAFETCHERROR 7 //If the file data wasn't fetched completely
-#define W_LUMPNOTFOUND 8 //If the desired lump was not found
-
-//Used to localize lumps in the wad
-typedef struct
-{
-	uint32_t filepos;
-	uint32_t size;
-	char name[8];
-} lump_t;
-
-//Used to handle wad file and its lumps
 typedef struct
 {
 	FILE* fp;
 	uint32_t numlumps;
-	lump_t* lumps;
+	uint32_t lumplistpos;
 } wad_t;
 
-//Used to get lump's raw data and its size
 typedef struct
 {
 	uint32_t size;
 	uint8_t* data;
-} lumpdata_t;
+} lump_t;
 
 //Load a WAD file and its lump list
 //Don't forget to WAD_Close() if you won't use it anymore
@@ -45,17 +30,22 @@ typedef struct
 //Return: 0 if success, errno if fail 
 int WAD_LoadFile(const char* fn, wad_t* wad);
 
-//Get lump raw data from the wad
+//Get lump data dinamically from the wad
 //Don't forget to WAD_FreeLumpData() if you won't use it anymore
-//Args: lumpname, wad_t addr, raw_data
+//Args: lumpname, wad_t addr, lump_t addr
 //Return: 0 if success, errno if fail
-int WAD_LoadLumpData(const char* ln, wad_t* wad, lumpdata_t* lumpdata);
+int WAD_LoadLumpData(const char* ln, wad_t* wad, lump_t* lump);
 
-//Free mallocated elements within lumpdata_t
+//Print full list of lumps to screen
+//Args: wad_t addr
+//Return: 0 if success, errno if fail
+int WAD_PrintLumpList(wad_t* wad);
+
+//Free allocated lump data
 //Args: lumpdata_t addr
-void WAD_FreeLumpData(lumpdata_t* lumpdata);
+void WAD_FreeLumpData(lump_t* lump);
 
-//Free mallocated elements within wad_t and close WAD file
+//Close WAD file
 //Args: wad_t addr
 void WAD_Close(wad_t* wad);
 

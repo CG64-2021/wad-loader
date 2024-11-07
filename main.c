@@ -22,30 +22,26 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	
-	printf("List of lumps available:\n\n");
-	uint32_t i;
-	for(i=0; i < mywad.numlumps; ++i)
-	{
-		printf("fp:0x%X, size:%u, name:%.8s\n", mywad.lumps[i].filepos, mywad.lumps[i].size, mywad.lumps[i].name);
-	}
+	//Printf list of lumps available
+	WAD_PrintLumpList(&mywad);
 	
 	char lumpname[9];
 	printf("\nWhich lump you want to load?\nName: ");
 	scanf("%8s", lumpname);
 	
-	lumpdata_t lumpdata;
-	if (ret = WAD_LoadLumpData(lumpname, &mywad, &lumpdata))
+	lump_t lump;
+	if (ret = WAD_LoadLumpData(lumpname, &mywad, &lump))
 	{
 		printf("Failed to load lump data! errno:%d\n", ret);
 		WAD_Close(&mywad);
 		return 0;
 	}
 	
-	uint8_t* bytes = lumpdata.data;
+	uint8_t* bytes = lump.data;
 	printf("Lump data loaded successful!\n");
-	printf("size: %u\n", lumpdata.size);
+	printf("size: %u\n", lump.size);
 	
-	WAD_FreeLumpData(&lumpdata);
+	WAD_FreeLumpData(&lump);
 	WAD_Close(&mywad);
 	
 	return 0;
