@@ -12,9 +12,9 @@
 #define W_LFETCHERROR 5 //if the lump list wasn't fetched completely
 
 //Error codes, used by WAD_LoadLumpData()
-#define W_DATAMALLOCERROR 6
-#define W_DATAFETCHERROR 7
-#define W_LUMPNOTFOUND 8
+#define W_DATAMALLOCERROR 6 //if raw_data wasn't mallocated
+#define W_DATAFETCHERROR 7 //if lump data couldn't be fetched from the file
+#define W_LUMPNOTFOUND 8 //if desired lump was not found
 
 typedef struct
 {
@@ -37,7 +37,7 @@ typedef struct
 int WAD_LoadFile(const char* fn, wad_t* wad);
 
 //Get lump raw data from the wad
-//Don't forget to free() if you won't use it anymore
+//Don't forget to free() if you won't use raw_data anymore
 //Args: lumpname, wad_t addr, raw_data
 //Return: 0 if success, errno if fail
 int WAD_LoadLumpData(const char* ln, wad_t* wad, uint8_t* raw_data);
