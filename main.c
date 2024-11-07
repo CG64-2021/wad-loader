@@ -33,16 +33,19 @@ int main(int argc, char** argv)
 	printf("\nWhich lump you want to load?\nName: ");
 	scanf("%8s", lumpname);
 	
-	uint8_t* lumpdata;
-	if (ret = WAD_LoadLumpData(lumpname, &mywad, lumpdata))
+	lumpdata_t lumpdata;
+	if (ret = WAD_LoadLumpData(lumpname, &mywad, &lumpdata))
 	{
 		printf("Failed to load lump data! errno:%d\n", ret);
 		WAD_Close(&mywad);
 		return 0;
 	}
+	
+	uint8_t* bytes = lumpdata.data;
 	printf("Lump data loaded successful!\n");
-
-	if (lumpdata) free(lumpdata);
+	printf("size: %u\n", lumpdata.size);
+	
+	WAD_FreeLumpData(&lumpdata);
 	WAD_Close(&mywad);
 	
 	return 0;
