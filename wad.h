@@ -46,7 +46,7 @@ int WAD_LoadFile(const char* fn, wad_t* wad);
 //Don't forget to WAD_FreeLumpData() if you won't use it anymore
 //Args: lumpname, wad_t addr, raw_data
 //Return: 0 if success, errno if fail
-int WAD_LoadLumpData(const char* ln, wad_t* wad, lumpdata_t* raw_data);
+int WAD_LoadLumpData(const char* ln, wad_t* wad, lumpdata_t* lumpdata);
 
 //Free mallocated elements within lumpdata_t
 //Args: lumpdata_t addr
