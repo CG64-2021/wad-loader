@@ -14,10 +14,13 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	
+	int ret;
 	wad_t mywad;
-	int ret = WAD_LoadFile(argv[1], &mywad);
-	
-	if (ret == 4) return 0;
+	if (ret = WAD_LoadFile(argv[1], &mywad))
+	{
+		printf("Failed to load WAD file! Errno:%d\n", ret);
+		return 0;
+	}
 	
 	printf("List of lumps available:\n\n");
 	uint32_t i;
@@ -26,6 +29,20 @@ int main(int argc, char** argv)
 		printf("fp:0x%X, size:%u, name:%.8s\n", mywad.lumps[i].filepos, mywad.lumps[i].size, mywad.lumps[i].name);
 	}
 	
+	char lumpname[9];
+	printf("\nWhich lump you want to load?\nName: ");
+	scanf("%8s", lumpname);
+	
+	uint8_t* lumpdata;
+	if (ret = WAD_LoadLumpData(lumpname, &mywad, lumpdata))
+	{
+		printf("Failed to load lump data! errno:%d\n", ret);
+		WAD_Close(&mywad);
+		return 0;
+	}
+	printf("Lump data loaded successful!\n");
+
+	if (lumpdata) free(lumpdata);
 	WAD_Close(&mywad);
 	
 	return 0;
