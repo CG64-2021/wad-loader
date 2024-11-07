@@ -5,32 +5,46 @@
 
 #include "wad.h"
 
+typedef struct
+{
+	char id[4];
+	uint32_t numlumps;
+	uint32_t lumplistofs;
+} header_t;
+
 
 int WAD_LoadFile(const char* fn, wad_t* wad)
 {
-	char id[4];
-	uint32_t lumplistofs;
+	header_t header;
 	
-	//Open a file
 	wad->fp = fopen(fn, "rb");
 	if (!wad->fp) return W_FOPENERROR;
 	
-	//Check if it is a valid wad file
-	fread(id, 1, 4, wad->fp);
-	if (memcmp(id, "IWAD", 4) && memcmp(id, "PWAD", 4))
+	//Read WAD header
+	if (fread(&header, 1, sizeof(header_t), wad->fp) < sizeof(header))
+	{
+		fclose(wad->fp);
+		return W_FTRUNCATED;
+	}
+	
+	//Check if its a valid WAD file
+	if (memcmp(header.id, "IWAD", 4) && memcmp(header.id, "PWAD", 4))
 	{
 		fclose(wad->fp);
 		return W_NONVALID;
 	}
 	
-	//How many lumps we have in the wad?
-	fread(&wad->numlumps, 4, 1, wad->fp);
+	//Get number of lumps available
+	wad->numlumps = header.numlumps;
 	
-	//Let's go to the lumps list
-	fread(&lumplistofs, 4, 1, wad->fp);
-	fseek(wad->fp, lumplistofs, SEEK_SET);
+	//Go to the lump list
+	if (fseek(wad->fp, header.lumplistofs, SEEK_SET))
+	{
+		fclose(wad->fp);
+		return W_FTRUNCATED;
+	}
 	
-	//Now let's get the full list of available lumps from the wad
+	//Get full list of available lumps
 	wad->lumps = (lump_t*)malloc(wad->numlumps*sizeof(lump_t));
 	if (!wad->lumps)
 	{
@@ -38,10 +52,8 @@ int WAD_LoadFile(const char* fn, wad_t* wad)
 		return W_LMALLOCERROR;
 	}
 	memset(wad->lumps, 0, sizeof(wad->lumps));
-	size_t numbytes_read = fread(wad->lumps, sizeof(wad->lumps[0]), wad->numlumps, wad->fp);
-	if (numbytes_read < sizeof(wad->lumps))
+	if (fread(wad->lumps, sizeof(wad->lumps[0]), wad->numlumps, wad->fp) < sizeof(wad->lumps))
 	{
-		printf("W_LoadFile: Failed to load all data! Total:%u Read:%u\n", sizeof(wad->lumps), numbytes_read);
 		free(wad->lumps);
 		fclose(wad->fp);
 		return W_LFETCHERROR;
@@ -50,10 +62,8 @@ int WAD_LoadFile(const char* fn, wad_t* wad)
 	return 0;
 }
 
-uint8_t* WAD_LoadLumpData(const char* ln, wad_t* wad)
+int WAD_LoadLumpData(const char* ln, wad_t* wad, uint8_t* raw_data)
 {
-	uint8_t* data;
-	
 	uint32_t numlumps = wad->numlumps;
 	lump_t* lumps = wad->lumps;
 	
@@ -61,25 +71,27 @@ uint8_t* WAD_LoadLumpData(const char* ln, wad_t* wad)
 	uint32_t i;
 	for(i=0; i < numlumps; ++i)
 	{
-		//A lump name has 8 characters total
+		//A lump name is 8 bytes long
 		//If the desired lump was found, let's get its raw data
-		if (!memcmp(lumps[i].name, ln, 8))
+		if (!memcmp(lumps[i].name, ln, sizeof(ln)&15))
 		{
-			fseek(wad->fp, lumps[i].filepos, SEEK_SET);
-			data = malloc(lumps[i].size);
-			if (!data) return NULL;
-			memset(data, 0, sizeof(data));
-			size_t numbytes_read = fread(data, 1, lumps[i].size, wad->fp);
-			if (numbytes_read < (lumps[i].size))
+			if (fseek(wad->fp, lumps[i].filepos, SEEK_SET))
 			{
-				printf("WAD_LoadLumpData: Failed to load all data! Total:%d Read:%d\n", lumps[i].size, numbytes_read);
-				free(data);
-				return NULL;
+				return W_FTRUNCATED;
 			}
-			return data;
+			raw_data = malloc(lumps[i].size);
+			if (!raw_data) return W_DATAMALLOCERROR;
+			memset(raw_data, 0, sizeof(raw_data));
+			
+			if (fread(raw_data, 1, lumps[i].size, wad->fp) < lumps[i].size)
+			{
+				free(raw_data);
+				return W_DATAFETCHERROR;
+			}
+			return 0;
 		}
 	}
-	return NULL;
+	return W_LUMPNOTFOUND;
 }
 
 void WAD_Close(wad_t* wad)
