@@ -25,7 +25,7 @@ typedef struct
 	uint8_t* data;
 } lump_t;
 
-//Load a WAD file and its lump list
+//Load a WAD file
 //Don't forget to WAD_Close() if you won't use it anymore
 //Args: filename, wad_t addr
 //Return: 0 if success, errno if fail 
@@ -37,12 +37,12 @@ int WAD_LoadFile(const char* fn, wad_t* wad);
 //Return: 0 if success, errno if fail
 int WAD_LoadLumpData(const char* ln, wad_t* wad, lump_t* lump);
 
-//Print full list of lumps on screen
+//Print full list of available lumps on screen
 //Args: wad_t addr
 //Return: 0 if success, errno if fail
 int WAD_PrintLumpList(wad_t* wad);
 
-//Free allocated lump data
+//Free allocated lump data from heap
 //Args: lumpdata_t addr
 void WAD_FreeLumpData(lump_t* lump);
 

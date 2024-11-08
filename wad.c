@@ -84,7 +84,7 @@ int WAD_LoadLumpData(const char* ln, wad_t* wad, lump_t* lump)
 		lump->data = calloc(lump->size, 1);
 		if (!lump->data) return W_LMALLOCERR;
 		
-		//Read raw data from the file
+		//Get raw data from the file
 		if (fread(lump->data, 1, lump->size, wad->fp) < lump->size)
 		{
 			free(lump->data);
@@ -109,7 +109,7 @@ int WAD_PrintLumpList(wad_t* wad)
 	
 	printf("Lump List: \n\n");
 	
-	//Print a list containing all lumps available to screen
+	//Print a list containing all lumps available on screen
 	while(!feof(wad->fp))
 	{
 		memset(buffer, 0, LUMPINFO_SIZE);
