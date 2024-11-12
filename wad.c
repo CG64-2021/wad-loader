@@ -54,7 +54,6 @@ int WAD_LoadFile(const char* fn, wad_t* wad)
 int WAD_LoadLumpData(const char* ln, wad_t* wad, lump_t* lump)
 {
 	char buffer[LUMPINFO_SIZE];
-	uint32_t numlumps = wad->numlumps;
 	uint32_t lumppos;
 	uint32_t lumpsize;
 	
@@ -73,7 +72,7 @@ int WAD_LoadLumpData(const char* ln, wad_t* wad, lump_t* lump)
 		if (memcmp(&buffer[8], ln, strlen(ln)&(LUMPINFO_SIZE-1)))
 			continue;
 		
-		//Go to where is the lump's data
+		//Go to where the lump's data is
 		memcpy(&lumppos, buffer, 4);
 		if (fseek(wad->fp, swapU32(lumppos), SEEK_SET))
 			return W_FTRUNCATED;
@@ -129,7 +128,7 @@ int WAD_PrintLumpList(wad_t* wad)
 void WAD_FreeLumpData(lump_t* lump)
 {
 	free(lump->data);
-	memset(lump, 0, sizeof(lump));
+	memset(lump, 0, sizeof(lump_t));
 }
 
 void WAD_Close(wad_t* wad)
